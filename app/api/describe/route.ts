@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser, deductCredits } from '@/lib/user';
+import { getSetting } from '@/lib/settings';
 
 const IDEOGRAM_API_URL = 'https://api.ideogram.ai/describe';
-const IDEOGRAM_API_KEY = process.env.IDEOGRAM_API_KEY;
 
 interface ProcessResult {
   success: boolean;
@@ -38,6 +38,9 @@ async function processImage(file: File, userId: string): Promise<ProcessResult> 
     let description = '';
     let confidence = 95;
     let source = 'ideogram';
+
+    // Get Ideogram API key from database (with fallback to env)
+    const IDEOGRAM_API_KEY = await getSetting('IDEOGRAM_API_KEY', 'IDEOGRAM_API_KEY');
 
     // Try to call Ideogram API
     if (IDEOGRAM_API_KEY) {

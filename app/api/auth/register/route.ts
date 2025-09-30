@@ -28,24 +28,13 @@ export async function POST(request: NextRequest) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12)
 
-    // Create user with 10 free credits
+    // Create user with 0 credits (default)
     const user = await prisma.user.create({
       data: {
         email,
         password: hashedPassword,
         name,
-        credits: 10,
         role: "USER"
-      }
-    })
-
-    // Create a credit transaction for the welcome bonus
-    await prisma.creditTransaction.create({
-      data: {
-        userId: user.id,
-        amount: 10,
-        type: "BONUS",
-        description: "Welcome bonus - 10 free credits"
       }
     })
 

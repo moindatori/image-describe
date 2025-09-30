@@ -28,6 +28,8 @@ export async function POST(request: NextRequest) {
     const amount = formData.get('amount') as string;
     const transactionId = formData.get('transactionId') as string;
     const qrCode = formData.get('qrCode') as string;
+    const currency = formData.get('currency') as string || 'PKR';
+    const location = formData.get('location') as string || 'pakistan';
 
     // Validate required fields (screenshot is now optional)
     if (!credits || !amount || !transactionId) {
@@ -53,8 +55,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid credits amount. Minimum 10 credits required.' }, { status: 400 });
     }
 
-    if (isNaN(amountNum) || amountNum < 50) {
-      return NextResponse.json({ error: 'Invalid amount. Minimum 50 PKR required.' }, { status: 400 });
+    // Validate amount based on currency and location
+    if (location === 'pakistan' && currency === 'PKR') {
+      if (isNaN(amountNum) || amountNum < 20) { // Minimum 20 PKR (10 credits * 2 PKR)
+        return NextResponse.json({ error: 'Invalid amount. Minimum 20 PKR required.' }, { status: 400 });
+      }
+    } else if (location === 'international' && currency === 'USD') {
+      if (isNaN(amountNum) || amountNum < 5) { // Minimum $5 USD
+        return NextResponse.json({ error: 'Invalid amount. Minimum $5 USD required.' }, { status: 400 });
+      }
+    } else {
+      return NextResponse.json({ error: 'Invalid currency or location combination.' }, { status: 400 });
     }
 
     // Validate transaction ID
@@ -68,13 +79,18 @@ export async function POST(request: NextRequest) {
       screenshotUrl = await uploadToCloudinary(screenshot, 'payment-screenshots');
     }
 
+    // Determine payment method based on location
+    const paymentMethod = location === 'pakistan' ? 'QR_CODE' : 'BINANCE';
+
     // Save payment request to database
     const paymentRequest = await prisma.paymentRequest.create({
       data: {
         userId: session.user.id,
         creditsRequested: creditsNum,
         amount: amountNum,
-        paymentMethod: 'QR_CODE', // New payment method type
+        currency: currency,
+        location: location,
+        paymentMethod: paymentMethod,
         transactionId: transactionId.trim(),
         qrCodeUsed: qrCode || null,
         screenshotUrl: screenshotUrl,

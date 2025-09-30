@@ -18,6 +18,8 @@ function PaymentPageContent() {
   const [credits, setCredits] = useState('');
   const [amount, setAmount] = useState('');
   const [qrCode, setQrCode] = useState('');
+  const [currency, setCurrency] = useState('PKR');
+  const [location, setLocation] = useState('pakistan');
   const [transactionId, setTransactionId] = useState('');
   const [screenshot, setScreenshot] = useState<File | null>(null);
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
@@ -36,6 +38,8 @@ function PaymentPageContent() {
     const creditsParam = searchParams.get('credits');
     const amountParam = searchParams.get('amount');
     const qrCodeParam = searchParams.get('qrCode');
+    const currencyParam = searchParams.get('currency');
+    const locationParam = searchParams.get('location');
 
     if (!creditsParam || !amountParam) {
       router.push('/app/buy-credits');
@@ -45,6 +49,8 @@ function PaymentPageContent() {
     setCredits(creditsParam);
     setAmount(amountParam);
     setQrCode(qrCodeParam || '');
+    setCurrency(currencyParam || 'PKR');
+    setLocation(locationParam || 'pakistan');
   }, [session, status, router, searchParams]);
 
   const handleScreenshotChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -91,6 +97,8 @@ function PaymentPageContent() {
       formData.append('amount', amount);
       formData.append('transactionId', transactionId.trim());
       formData.append('qrCode', qrCode);
+      formData.append('currency', currency);
+      formData.append('location', location);
 
       const response = await fetch('/api/payment/submit', {
         method: 'POST',
@@ -163,11 +171,11 @@ function PaymentPageContent() {
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Amount:</span>
-                <span className="font-semibold">₨{amount}</span>
+                <span className="font-semibold">{currency === 'PKR' ? '₨' : '$'}{amount}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Payment Method:</span>
-                <span className="font-semibold">Bank Transfer / QR Code</span>
+                <span className="font-semibold">{location === 'pakistan' ? 'Bank Transfer / QR Code' : 'Binance'}</span>
               </div>
             </div>
           </Card>
@@ -193,8 +201,8 @@ function PaymentPageContent() {
                 </div>
               )}
               <div className="mt-4 text-sm text-gray-600">
-                <p className="mb-2">Scan this QR code with your banking app or mobile wallet</p>
-                <p className="font-semibold">Amount: ₨{amount}</p>
+                <p className="mb-2">{location === 'pakistan' ? 'Scan this QR code with your banking app or mobile wallet' : 'Send payment to the Binance address shown in the QR code'}</p>
+                <p className="font-semibold">Amount: {currency === 'PKR' ? '₨' : '$'}{amount}</p>
                 <p className="text-xs text-gray-500 mt-2">
                   After payment, enter your transaction ID below. Screenshot upload is optional but recommended.
                 </p>
@@ -261,8 +269,8 @@ function PaymentPageContent() {
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
               <h3 className="font-semibold text-blue-900 mb-2">Instructions:</h3>
               <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
-                <li>Scan the QR code with your banking app or mobile wallet</li>
-                <li>Complete the payment of ₨{amount}</li>
+                <li>{location === 'pakistan' ? 'Scan the QR code with your banking app or mobile wallet' : 'Send payment to the Binance address shown in the QR code'}</li>
+                <li>Complete the payment of {currency === 'PKR' ? '₨' : '$'}{amount}</li>
                 <li>Note down the transaction ID from your payment confirmation</li>
                 <li>Enter the transaction ID in the form above</li>
                 <li>Optionally upload a screenshot of the payment confirmation for faster processing</li>

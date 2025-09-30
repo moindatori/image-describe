@@ -14,19 +14,28 @@ interface CreditPackage {
   price: number;
   popular?: boolean;
   qrCode: string;
+  currency: string;
 }
 
-const creditPackages: CreditPackage[] = [
-  { credits: 500, price: 1000, qrCode: '1000rs 500cradit.png' },
-  { credits: 1000, price: 2000, qrCode: '2000rs 1000credit.png', popular: true },
-  { credits: 1500, price: 3000, qrCode: '3000rs 1500credit.png' },
-  { credits: 2000, price: 4000, qrCode: '4000rs 2000credit.png' },
-  { credits: 2500, price: 5000, qrCode: '5000 rs 2500 credit.png' },
+type LocationType = 'pakistan' | 'international';
+
+const pakistanPackages: CreditPackage[] = [
+  { credits: 500, price: 1000, qrCode: '1000 Rs 500 Cradit.png', currency: 'PKR' },
+  { credits: 1000, price: 2000, qrCode: '2000Rs 1000 Cradit.png', popular: true, currency: 'PKR' },
+  { credits: 1500, price: 3000, qrCode: '3000Rs 1500 Cradit.png', currency: 'PKR' },
+  { credits: 2000, price: 4000, qrCode: '4000 Rs 2000 Cradit.png', currency: 'PKR' },
+  { credits: 2500, price: 5000, qrCode: '5000 Rs 2500 Cradit.png', currency: 'PKR' },
+];
+
+const internationalPackages: CreditPackage[] = [
+  { credits: 500, price: 5, qrCode: 'Binance 10$ equal to 1000 cradit.png', currency: 'USD' },
+  { credits: 1000, price: 10, qrCode: 'Binance 10$ equal to 1000 cradit.png', popular: true, currency: 'USD' },
 ];
 
 export default function BuyCreditsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const [location, setLocation] = useState<LocationType>('pakistan');
   const [selectedPackage, setSelectedPackage] = useState<CreditPackage | null>(null);
   const [customCredits, setCustomCredits] = useState('');
   const [customPrice, setCustomPrice] = useState('');
@@ -42,6 +51,20 @@ export default function BuyCreditsPage() {
       return;
     }
   }, [session, status, router]);
+
+  const getCurrentPackages = () => {
+    return location === 'pakistan' ? pakistanPackages : internationalPackages;
+  };
+
+  const handleLocationChange = (newLocation: LocationType) => {
+    setLocation(newLocation);
+    setSelectedPackage(null);
+    setIsCustom(false);
+    setCustomCredits('');
+    setCustomPrice('');
+    setSelectedQrCode('');
+    setError('');
+  };
 
   const handlePackageSelect = (pkg: CreditPackage) => {
     setSelectedPackage(pkg);
@@ -60,8 +83,14 @@ export default function BuyCreditsPage() {
   const calculateCustomPrice = (credits: string) => {
     const creditsNum = parseInt(credits);
     if (creditsNum && creditsNum > 0) {
-      // Rate: 5 PKR per credit
-      const price = creditsNum * 5;
+      let price: number;
+      if (location === 'pakistan') {
+        // Rate: 2 PKR per credit
+        price = creditsNum * 2;
+      } else {
+        // Rate: $0.01 USD per credit (500 credits = $5, 1000 credits = $10)
+        price = creditsNum * 0.01;
+      }
       setCustomPrice(price.toString());
     } else {
       setCustomPrice('');
@@ -77,24 +106,36 @@ export default function BuyCreditsPage() {
     let credits: number;
     let amount: number;
     let qrCode: string;
+    let currency: string;
 
     if (isCustom) {
       credits = parseInt(customCredits);
       amount = parseFloat(customPrice);
+      currency = location === 'pakistan' ? 'PKR' : 'USD';
       
       if (!credits || credits < 10) {
         setError('Minimum 10 credits required for custom purchase');
         return;
       }
-      if (!amount || amount < 50) {
-        setError('Minimum amount is 50 PKR');
-        return;
+      
+      if (location === 'pakistan') {
+        if (!amount || amount < 20) {
+          setError('Minimum amount is 20 PKR (10 credits)');
+          return;
+        }
+      } else {
+        if (!amount || amount < 0.1) {
+          setError('Minimum amount is $0.10 USD (10 credits)');
+          return;
+        }
       }
-      qrCode = ''; // Custom packages don't have predefined QR codes
+      
+      qrCode = location === 'pakistan' ? 'Custom 2pkr for 1 cradit.png' : 'Binance 10$ equal to 1000 cradit.png';
     } else if (selectedPackage) {
       credits = selectedPackage.credits;
       amount = selectedPackage.price;
       qrCode = selectedPackage.qrCode;
+      currency = selectedPackage.currency;
     } else {
       setError('Please select a credit package');
       return;
@@ -104,7 +145,9 @@ export default function BuyCreditsPage() {
     const params = new URLSearchParams({
       credits: credits.toString(),
       amount: amount.toString(),
-      qrCode: qrCode
+      qrCode: qrCode,
+      currency: currency,
+      location: location
     });
     
     router.push(`/app/buy-credits/payment?${params.toString()}`);
@@ -137,11 +180,38 @@ export default function BuyCreditsPage() {
         </Alert>
       )}
 
+      {/* Location Selector */}
+      <div className="mb-8">
+        <h2 className="text-xl font-bold text-slate-900 mb-4 text-center">Select Your Location</h2>
+        <div className="flex justify-center gap-4">
+          <Button
+            onClick={() => handleLocationChange('pakistan')}
+            className={`px-8 py-3 rounded-lg font-semibold transition-all duration-300 ${
+              location === 'pakistan'
+                ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+          >
+            🇵🇰 Pakistan
+          </Button>
+          <Button
+            onClick={() => handleLocationChange('international')}
+            className={`px-8 py-3 rounded-lg font-semibold transition-all duration-300 ${
+              location === 'international'
+                ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+          >
+            🌍 International
+          </Button>
+        </div>
+      </div>
+
       {/* Credit Packages */}
       <div className="mb-10">
         <h2 className="text-2xl font-bold text-slate-900 mb-6 text-center">Choose a Package</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {creditPackages.map((pkg) => (
+          {getCurrentPackages().map((pkg) => (
             <Card
               key={pkg.credits}
               className={`relative cursor-pointer transition-all duration-300 transform hover:scale-105 ${
@@ -164,10 +234,10 @@ export default function BuyCreditsPage() {
                 </div>
                 <div className="text-slate-600 mb-6 font-medium">Credits</div>
                 <div className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
-                  ₨{pkg.price}
+                  {pkg.currency === 'PKR' ? '₨' : '$'}{pkg.price}
                 </div>
                 <div className="text-sm text-slate-500 bg-slate-100 px-3 py-1 rounded-full inline-block">
-                  ₨{(pkg.price / pkg.credits).toFixed(1)} per credit
+                  {pkg.currency === 'PKR' ? '₨' : '$'}{(pkg.price / pkg.credits).toFixed(pkg.currency === 'PKR' ? 1 : 3)} per credit
                 </div>
               </div>
             </Card>
@@ -188,7 +258,7 @@ export default function BuyCreditsPage() {
               </div>
               <div className="text-slate-600 mb-6 font-medium">Credits</div>
               <div className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
-                ₨5/credit
+                {location === 'pakistan' ? '₨2/credit' : '$0.01/credit'}
               </div>
               <div className="text-sm text-slate-500 bg-slate-100 px-3 py-1 rounded-full inline-block">
                 Choose your amount
@@ -217,7 +287,7 @@ export default function BuyCreditsPage() {
                 />
               </div>
               <div>
-                <Label htmlFor="customPrice">Total Amount (PKR)</Label>
+                <Label htmlFor="customPrice">Total Amount ({location === 'pakistan' ? 'PKR' : 'USD'})</Label>
                 <Input
                   id="customPrice"
                   type="number"

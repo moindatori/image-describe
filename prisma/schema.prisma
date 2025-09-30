@@ -18,7 +18,7 @@ model User {
   emailVerified DateTime? // For email verification
   image         String?   // Profile image URL
   role          UserRole  @default(USER)
-  credits       Int       @default(10) // Start with 10 free credits
+  credits       Int       @default(0) // Start with 0 credits
   isActive      Boolean   @default(true)
   lastLoginAt   DateTime?
   createdAt     DateTime  @default(now())
@@ -111,8 +111,10 @@ model PaymentRequest {
   id                String        @id @default(cuid())
   userId            String
   creditsRequested  Int           // Number of credits to purchase
-  amount            Float         // Payment amount in PKR
-  paymentMethod     String        // "QR_CODE", "easypaisa", or "jazzcash" (legacy)
+  amount            Float         // Payment amount
+  currency          String        @default("PKR") // Currency: PKR or USD
+  location          String        @default("pakistan") // Location: pakistan or international
+  paymentMethod     String        // "QR_CODE", "BINANCE", "easypaisa", or "jazzcash" (legacy)
   transactionId     String?       // Transaction ID from payment confirmation
   qrCodeUsed        String?       // QR code filename that was used for payment
   screenshotUrl     String?       // URL to uploaded payment screenshot
@@ -127,6 +129,18 @@ model PaymentRequest {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("payment_requests")
+}
+
+model Settings {
+  id        String   @id @default(cuid())
+  key       String   @unique // e.g., "IDEOGRAM_API_KEY", "OPENAI_API_KEY"
+  value     String   // The actual API key or setting value
+  category  String   @default("API") // API, GENERAL, etc.
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("settings")
 }
 
 enum UserRole {
