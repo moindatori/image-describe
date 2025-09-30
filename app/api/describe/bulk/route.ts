@@ -13,16 +13,33 @@ interface ProcessResult {
   confidence?: number;
   source?: string;
   error?: string;
+  index: number;
 }
 
-async function processImage(file: File, userId: string): Promise<ProcessResult> {
+interface ProgressUpdate {
+  type: 'progress' | 'result' | 'complete' | 'error';
+  index?: number;
+  total?: number;
+  result?: ProcessResult;
+  summary?: {
+    total: number;
+    successful: number;
+    failed: number;
+    creditsUsed: number;
+    remainingCredits: number;
+  };
+  error?: string;
+}
+
+async function processImage(file: File, userId: string, index: number): Promise<ProcessResult> {
   try {
     // Validate file type
     if (!file.type.startsWith('image/')) {
       return {
         success: false,
         filename: file.name,
-        error: 'File must be an image'
+        error: 'File must be an image',
+        index
       };
     }
 
@@ -31,7 +48,8 @@ async function processImage(file: File, userId: string): Promise<ProcessResult> 
       return {
         success: false,
         filename: file.name,
-        error: 'File size must be less than 10MB'
+        error: 'File size must be less than 10MB',
+        index
       };
     }
 
@@ -57,8 +75,6 @@ async function processImage(file: File, userId: string): Promise<ProcessResult> 
         });
 
         if (ideogramResponse.ok) {
-          // Check if response is JSON
-          const contentType = ideogramResponse.headers.get('content-type');
           let responseText = '';
           
           try {
@@ -103,27 +119,25 @@ async function processImage(file: File, userId: string): Promise<ProcessResult> 
       } catch (apiError) {
         console.error('Ideogram API error:', apiError);
         // Use fallback description
-        description = `This appears to be a ${file.type.split('/')[1]} image file named "${file.name}". The image contains visual content that would typically be analyzed by an AI vision model to provide detailed descriptions of objects, scenes, people, text, and other visual elements present in the image.`;
-        confidence = 85;
+        description = `A detailed image showing various visual elements. This appears to be ${file.name.split('.')[0].replace(/[-_]/g, ' ')}.`;
+        confidence = 75;
         source = 'fallback';
       }
     } else {
-      // Fallback when no API key
-      description = `This appears to be a ${file.type.split('/')[1]} image file named "${file.name}". The image contains visual content that would typically be analyzed by an AI vision model to provide detailed descriptions of objects, scenes, people, text, and other visual elements present in the image.`;
-      confidence = 85;
+      // No API key available, use fallback
+      description = `A detailed image showing various visual elements. This appears to be ${file.name.split('.')[0].replace(/[-_]/g, ' ')}.`;
+      confidence = 75;
       source = 'fallback';
     }
 
     // Save to database
     const savedImage = await prisma.imageDescription.create({
       data: {
-        userId,
+        userId: userId,
         filename: file.name,
-        description,
-        confidence,
-        source,
-        fileSize: file.size,
-        mimeType: file.type,
+        description: description,
+        confidence: confidence,
+        source: source,
       },
     });
 
@@ -131,17 +145,19 @@ async function processImage(file: File, userId: string): Promise<ProcessResult> 
       success: true,
       imageId: savedImage.id,
       filename: file.name,
-      description,
-      confidence,
-      source
+      description: description,
+      confidence: confidence,
+      source: source,
+      index
     };
 
   } catch (error) {
-    console.error(`Error processing ${file.name}:`, error);
+    console.error('Error processing image:', error);
     return {
       success: false,
       filename: file.name,
-      error: 'Processing failed'
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
+      index
     };
   }
 }
@@ -149,22 +165,11 @@ async function processImage(file: File, userId: string): Promise<ProcessResult> 
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
+    const files = formData.getAll('images') as File[];
     
-    // Check if it's a single image or multiple images
-    const singleImage = formData.get('image') as File;
-    const multipleImages = formData.getAll('images') as File[];
-    
-    let files: File[] = [];
-    
-    if (singleImage) {
-      // Single image mode
-      files = [singleImage];
-    } else if (multipleImages && multipleImages.length > 0) {
-      // Bulk mode
-      files = multipleImages;
-    } else {
+    if (!files || files.length === 0) {
       return NextResponse.json(
-        { error: 'No image file(s) provided' },
+        { error: 'No image files provided' },
         { status: 400 }
       );
     }
@@ -187,71 +192,103 @@ export async function POST(request: NextRequest) {
           error: 'Insufficient credits',
           required: requiredCredits,
           available: user.credits,
-          message: `You need at least ${requiredCredits} credit${requiredCredits > 1 ? 's' : ''} to describe ${requiredCredits > 1 ? 'these images' : 'this image'}.`
+          message: `You need at least ${requiredCredits} credit${requiredCredits > 1 ? 's' : ''} to describe these images.`
         },
         { status: 402 }
       );
     }
 
-    // Process each image
-    const results: ProcessResult[] = [];
-    let successfulProcessing = 0;
+    // Create a readable stream for Server-Sent Events
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      async start(controller) {
+        const results: ProcessResult[] = [];
+        let successfulProcessing = 0;
 
-    for (const file of files) {
-      const result = await processImage(file, user.id);
-      results.push(result);
-      
-      if (result.success) {
-        successfulProcessing++;
+        try {
+          // Send initial progress
+          const progressUpdate: ProgressUpdate = {
+            type: 'progress',
+            index: 0,
+            total: files.length
+          };
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(progressUpdate)}\n\n`));
+
+          // Process each image sequentially
+          for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            
+            // Send progress update
+            const progressUpdate: ProgressUpdate = {
+              type: 'progress',
+              index: i + 1,
+              total: files.length
+            };
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(progressUpdate)}\n\n`));
+
+            // Process the image
+            const result = await processImage(file, user.id, i);
+            results.push(result);
+            
+            if (result.success) {
+              successfulProcessing++;
+            }
+
+            // Send result update
+            const resultUpdate: ProgressUpdate = {
+              type: 'result',
+              result: result
+            };
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(resultUpdate)}\n\n`));
+          }
+
+          // Deduct credits only for successfully processed images
+          if (successfulProcessing > 0) {
+            await deductCredits(user.id, successfulProcessing, 'Bulk image description');
+          }
+
+          // Get updated user credits
+          const updatedUser = await prisma.user.findUnique({
+            where: { id: user.id },
+            select: { credits: true }
+          });
+
+          // Send completion update
+          const completeUpdate: ProgressUpdate = {
+            type: 'complete',
+            summary: {
+              total: files.length,
+              successful: successfulProcessing,
+              failed: files.length - successfulProcessing,
+              creditsUsed: successfulProcessing,
+              remainingCredits: updatedUser?.credits || 0
+            }
+          };
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(completeUpdate)}\n\n`));
+
+        } catch (error) {
+          console.error('Error in bulk processing:', error);
+          const errorUpdate: ProgressUpdate = {
+            type: 'error',
+            error: error instanceof Error ? error.message : 'Unknown error occurred'
+          };
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(errorUpdate)}\n\n`));
+        } finally {
+          controller.close();
+        }
       }
-    }
-
-    // Deduct credits only for successfully processed images
-    if (successfulProcessing > 0) {
-      await deductCredits(user.id, successfulProcessing, files.length === 1 ? `Image description for ${files[0].name}` : 'Bulk image description');
-    }
-
-    // Get updated user credits
-    const updatedUser = await prisma.user.findUnique({
-      where: { id: user.id },
-      select: { credits: true }
     });
 
-    // Return response based on single or bulk mode
-    if (files.length === 1) {
-      // Single image response format
-      const result = results[0];
-      if (result.success) {
-        return NextResponse.json({
-          id: result.imageId,
-          description: result.description,
-          confidence: result.confidence,
-          source: result.source,
-          timestamp: new Date().toISOString(),
-          creditsRemaining: updatedUser?.credits || 0,
-        });
-      } else {
-        return NextResponse.json(
-          { error: result.error || 'Failed to process image' },
-          { status: 400 }
-        );
-      }
-    } else {
-      // Bulk response format
-      return NextResponse.json({
-        results,
-        summary: {
-          total: files.length,
-          successful: successfulProcessing,
-          failed: files.length - successfulProcessing,
-          creditsUsed: successfulProcessing,
-          remainingCredits: updatedUser?.credits || 0
-        }
-      });
-    }
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
+    });
 
   } catch (error) {
-    console.error('Error processing image(s):', error);
+    console.error('Error processing bulk images:', error);
     
     // Check if it's an authentication error
     if (error instanceof Error && (error.message === 'User not authenticated' || error.message === 'User not found')) {
@@ -261,16 +298,8 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Check if it's a credits error
-    if (error instanceof Error && error.message === 'Insufficient credits') {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 402 }
-      );
-    }
-    
     return NextResponse.json(
-      { error: 'Failed to process image(s)' },
+      { error: 'Failed to process images' },
       { status: 500 }
     );
   }
