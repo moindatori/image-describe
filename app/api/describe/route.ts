@@ -57,12 +57,43 @@ async function processImage(file: File, userId: string): Promise<ProcessResult> 
         });
 
         if (ideogramResponse.ok) {
-          const result = await ideogramResponse.json();
-          description = result.descriptions?.[0]?.text || result.description || 'No description available';
-          confidence = 95;
-          source = 'ideogram';
+          // Check if response is JSON
+          const contentType = ideogramResponse.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            try {
+              const result = await ideogramResponse.json();
+              description = result.descriptions?.[0]?.text || result.description || 'No description available';
+              confidence = 95;
+              source = 'ideogram';
+            } catch (jsonError) {
+              console.error('Failed to parse Ideogram API JSON response:', jsonError);
+              throw new Error('Invalid JSON response from Ideogram API');
+            }
+          } else {
+            // Response is not JSON, read as text for debugging
+            const responseText = await ideogramResponse.text();
+            console.error('Ideogram API returned non-JSON response:', responseText);
+            throw new Error('Ideogram API returned invalid response format');
+          }
         } else {
-          throw new Error('Ideogram API request failed');
+          // Handle error responses
+          const contentType = ideogramResponse.headers.get('content-type');
+          let errorMessage = 'Ideogram API request failed';
+          
+          try {
+            if (contentType && contentType.includes('application/json')) {
+              const errorData = await ideogramResponse.json();
+              errorMessage = errorData.message || errorData.error || errorMessage;
+            } else {
+              const errorText = await ideogramResponse.text();
+              console.error('Ideogram API error response:', errorText);
+              errorMessage = `API error (${ideogramResponse.status}): ${errorText.substring(0, 100)}`;
+            }
+          } catch (parseError) {
+            console.error('Failed to parse error response:', parseError);
+          }
+          
+          throw new Error(errorMessage);
         }
       } catch (apiError) {
         console.error('Ideogram API error:', apiError);
