@@ -1,0 +1,149 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  password      String?   // For email/password auth
+  emailVerified DateTime? // For email verification
+  image         String?   // Profile image URL
+  role          UserRole  @default(USER)
+  credits       Int       @default(10) // Start with 10 free credits
+  isActive      Boolean   @default(true)
+  lastLoginAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  imageDescriptions  ImageDescription[]
+  creditTransactions CreditTransaction[]
+  paymentRequests    PaymentRequest[]
+  accounts           Account[]
+  sessions           Session[]
+
+  @@map("users")
+}
+
+// NextAuth.js required models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model ImageDescription {
+  id          String   @id @default(cuid())
+  userId      String
+  filename    String
+  originalUrl String?
+  description String
+  confidence  Int      @default(95)
+  source      String   @default("ideogram") // ideogram, fallback, etc.
+  fileSize    Int?
+  mimeType    String?
+  createdAt   DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("image_descriptions")
+}
+
+model CreditTransaction {
+  id          String            @id @default(cuid())
+  userId      String
+  amount      Int               // Positive for credits added, negative for credits used
+  type        CreditTransactionType
+  description String?
+  createdAt   DateTime          @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("credit_transactions")
+}
+
+model PaymentRequest {
+  id                String        @id @default(cuid())
+  userId            String
+  creditsRequested  Int           // Number of credits to purchase
+  amount            Float         // Payment amount in PKR
+  paymentMethod     String        // "QR_CODE", "easypaisa", or "jazzcash" (legacy)
+  transactionId     String?       // Transaction ID from payment confirmation
+  qrCodeUsed        String?       // QR code filename that was used for payment
+  screenshotUrl     String?       // URL to uploaded payment screenshot
+  status            PaymentStatus @default(PENDING)
+  adminNotes        String?       // Admin can add notes when reviewing
+  processedBy       String?       // Admin user ID who processed the request
+  processedAt       DateTime?     // When the request was processed
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("payment_requests")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum CreditTransactionType {
+  PURCHASE
+  BONUS
+  IMAGE_DESCRIPTION
+  BULK_DESCRIPTION
+  ADMIN_ADJUSTMENT
+}
+
+enum PaymentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
