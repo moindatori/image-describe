@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert } from '@/components/ui/alert';
+import PaymentRequestsStatus from '@/components/ui/PaymentRequestsStatus';
 
 interface CreditPackage {
   credits: number;
@@ -43,6 +44,7 @@ export default function BuyCreditsPage() {
   const [isCustom, setIsCustom] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showPaymentRequests, setShowPaymentRequests] = useState(true);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -64,6 +66,7 @@ export default function BuyCreditsPage() {
     setCustomPrice('');
     setSelectedQrCode('');
     setError('');
+    setShowPaymentRequests(true); // Show payment requests again when changing location
   };
 
   const handlePackageSelect = (pkg: CreditPackage) => {
@@ -72,11 +75,13 @@ export default function BuyCreditsPage() {
     setIsCustom(false);
     setCustomCredits('');
     setCustomPrice('');
+    setShowPaymentRequests(false); // Hide payment requests when selecting a package
   };
 
   const handleCustomSelect = () => {
     setIsCustom(true);
     setSelectedPackage(null);
+    setShowPaymentRequests(false); // Hide payment requests when selecting custom option
     setSelectedQrCode('');
   };
 
@@ -113,19 +118,19 @@ export default function BuyCreditsPage() {
       amount = parseFloat(customPrice);
       currency = location === 'pakistan' ? 'PKR' : 'USD';
       
-      if (!credits || credits < 10) {
-        setError('Minimum 10 credits required for custom purchase');
+      if (!credits || credits < 250) {
+        setError('Minimum 250 credits required for custom purchase');
         return;
       }
       
       if (location === 'pakistan') {
-        if (!amount || amount < 20) {
-          setError('Minimum amount is 20 PKR (10 credits)');
+        if (!amount || amount < 500) {
+          setError('Minimum amount is 500 PKR (250 credits)');
           return;
         }
       } else {
-        if (!amount || amount < 0.1) {
-          setError('Minimum amount is $0.10 USD (10 credits)');
+        if (!amount || amount < 2.5) {
+          setError('Minimum amount is $2.50 USD (250 credits)');
           return;
         }
       }
@@ -179,6 +184,9 @@ export default function BuyCreditsPage() {
           <div className="text-red-800">{error}</div>
         </Alert>
       )}
+
+      {/* Payment Requests Status */}
+      {showPaymentRequests && <PaymentRequestsStatus className="mb-8" />}
 
       {/* Location Selector */}
       <div className="mb-8">
@@ -275,11 +283,11 @@ export default function BuyCreditsPage() {
             <h3 className="text-xl font-bold text-slate-900 mb-6 text-center">Custom Package</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="customCredits">Number of Credits (min: 10)</Label>
+                <Label htmlFor="customCredits">Number of Credits (min: 250)</Label>
                 <Input
                   id="customCredits"
                   type="number"
-                  min="10"
+                  min="250"
                   value={customCredits}
                   onChange={(e) => handleCustomCreditsChange(e.target.value)}
                   placeholder="Enter credits amount"

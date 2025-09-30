@@ -308,11 +308,9 @@ const BulkImageUploadWithProgress: React.FC<BulkImageUploadProps> = ({
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-medium text-gray-900">
-                Ready to Process ({files.length} images)
+                Ready to Process 
               </h3>
-              <p className="text-sm text-gray-600">
-                Click "Process Images" to start analyzing your images
-              </p>
+              
             </div>
             <div className="flex space-x-3">
               {!isProcessing && (
@@ -323,7 +321,7 @@ const BulkImageUploadWithProgress: React.FC<BulkImageUploadProps> = ({
                   disabled={isLoading}
                   className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 text-lg"
                 >
-                  Process Images
+                  Process
                 </Button>
               )}
               <Button
@@ -333,7 +331,7 @@ const BulkImageUploadWithProgress: React.FC<BulkImageUploadProps> = ({
                 disabled={isLoading || isProcessing}
                 className="px-6 py-3"
               >
-                Clear All
+                Clear
               </Button>
             </div>
           </div>

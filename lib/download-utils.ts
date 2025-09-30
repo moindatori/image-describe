@@ -20,8 +20,8 @@ export function generateSingleDescriptionTXT(data: DescriptionData): string {
  * Generate TXT content for multiple image descriptions
  */
 export function generateBulkDescriptionsTXT(descriptions: DescriptionData[]): string {
-  // Simple format: just descriptions on each line
-  return descriptions.map(data => data.description).join('\n');
+  // Format with blank line between each description for better readability
+  return descriptions.map(data => data.description).join('\n\n');
 }
 
 /**
