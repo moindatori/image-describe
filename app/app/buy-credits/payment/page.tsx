@@ -73,11 +73,6 @@ function PaymentPageContent() {
   };
 
   const handleSubmitPayment = async () => {
-    if (!screenshot) {
-      setError('Please upload a payment screenshot');
-      return;
-    }
-
     if (!transactionId.trim()) {
       setError('Please enter the transaction ID');
       return;
@@ -89,7 +84,9 @@ function PaymentPageContent() {
     try {
       // First, upload the screenshot
       const formData = new FormData();
-      formData.append('screenshot', screenshot);
+      if (screenshot) {
+        formData.append('screenshot', screenshot);
+      }
       formData.append('credits', credits);
       formData.append('amount', amount);
       formData.append('transactionId', transactionId.trim());
@@ -139,7 +136,7 @@ function PaymentPageContent() {
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Complete Payment</h1>
-        <p className="text-gray-600">Scan the QR code and upload payment screenshot</p>
+        <p className="text-gray-600">Scan the QR code and provide transaction details</p>
       </div>
 
       {error && (
@@ -199,7 +196,7 @@ function PaymentPageContent() {
                 <p className="mb-2">Scan this QR code with your banking app or mobile wallet</p>
                 <p className="font-semibold">Amount: ₨{amount}</p>
                 <p className="text-xs text-gray-500 mt-2">
-                  After payment, enter your transaction ID and upload screenshot below
+                  After payment, enter your transaction ID below. Screenshot upload is optional but recommended.
                 </p>
               </div>
             </div>
@@ -230,7 +227,7 @@ function PaymentPageContent() {
 
             <div className="mb-6">
               <Label htmlFor="screenshot" className="block text-sm font-medium text-gray-700 mb-2">
-                Payment Screenshot *
+                Payment Screenshot (Optional)
               </Label>
               <Input
                 id="screenshot"
@@ -240,7 +237,7 @@ function PaymentPageContent() {
                 className="mb-2"
               />
               <p className="text-xs text-gray-500">
-                Upload a clear screenshot of your payment confirmation (max 5MB)
+                Upload a clear screenshot of your payment confirmation (max 5MB) - Optional but recommended for faster processing
               </p>
             </div>
 
@@ -267,16 +264,15 @@ function PaymentPageContent() {
                 <li>Scan the QR code with your banking app or mobile wallet</li>
                 <li>Complete the payment of ₨{amount}</li>
                 <li>Note down the transaction ID from your payment confirmation</li>
-                <li>Take a screenshot of the payment confirmation</li>
                 <li>Enter the transaction ID in the form above</li>
-                <li>Upload the screenshot using the form above</li>
+                <li>Optionally upload a screenshot of the payment confirmation for faster processing</li>
                 <li>Click &quot;Submit Payment Request&quot;</li>
               </ol>
             </div>
 
             <Button
               onClick={handleSubmitPayment}
-              disabled={loading || !screenshot || !transactionId.trim() || !!success}
+              disabled={loading || !transactionId.trim() || !!success}
               className="w-full"
             >
               {loading ? 'Submitting...' : success ? 'Request Submitted' : 'Submit Payment Request'}

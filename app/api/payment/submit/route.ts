@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
-import { existsSync } from 'fs';
+import { uploadToCloudinary } from '@/lib/cloudinary';
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,18 +29,20 @@ export async function POST(request: NextRequest) {
     const transactionId = formData.get('transactionId') as string;
     const qrCode = formData.get('qrCode') as string;
 
-    // Validate required fields
-    if (!screenshot || !credits || !amount || !transactionId) {
+    // Validate required fields (screenshot is now optional)
+    if (!credits || !amount || !transactionId) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Validate file
-    if (!screenshot.type.startsWith('image/')) {
-      return NextResponse.json({ error: 'Invalid file type. Please upload an image.' }, { status: 400 });
-    }
+    // Validate file if provided
+    if (screenshot && screenshot.size > 0) {
+      if (!screenshot.type.startsWith('image/')) {
+        return NextResponse.json({ error: 'Invalid file type. Please upload an image.' }, { status: 400 });
+      }
 
-    if (screenshot.size > 5 * 1024 * 1024) { // 5MB limit
-      return NextResponse.json({ error: 'File size too large. Maximum 5MB allowed.' }, { status: 400 });
+      if (screenshot.size > 5 * 1024 * 1024) { // 5MB limit
+        return NextResponse.json({ error: 'File size too large. Maximum 5MB allowed.' }, { status: 400 });
+      }
     }
 
     // Validate credits and amount
@@ -62,22 +62,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid transaction ID' }, { status: 400 });
     }
 
-    // Create uploads directory if it doesn't exist
-    const uploadsDir = join(process.cwd(), 'public', 'uploads', 'payment-screenshots');
-    if (!existsSync(uploadsDir)) {
-      await mkdir(uploadsDir, { recursive: true });
+    // Upload screenshot to Cloudinary if provided
+    let screenshotUrl = null;
+    if (screenshot && screenshot.size > 0) {
+      screenshotUrl = await uploadToCloudinary(screenshot, 'payment-screenshots');
     }
-
-    // Generate unique filename
-    const timestamp = Date.now();
-    const fileExtension = screenshot.name.split('.').pop() || 'jpg';
-    const filename = `payment_${session.user.id}_${timestamp}.${fileExtension}`;
-    const filepath = join(uploadsDir, filename);
-
-    // Save file
-    const bytes = await screenshot.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    await writeFile(filepath, buffer);
 
     // Save payment request to database
     const paymentRequest = await prisma.paymentRequest.create({
@@ -88,7 +77,7 @@ export async function POST(request: NextRequest) {
         paymentMethod: 'QR_CODE', // New payment method type
         transactionId: transactionId.trim(),
         qrCodeUsed: qrCode || null,
-        screenshotUrl: `/uploads/payment-screenshots/${filename}`,
+        screenshotUrl: screenshotUrl,
         status: 'PENDING',
       },
     });
