@@ -59,7 +59,7 @@ const BulkImageUploadWithProgress: React.FC<BulkImageUploadProps> = ({
   const resultsRef = useRef<ProcessResult[]>([]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
-    const newFiles = acceptedFiles.slice(0, maxFiles - files.length).map(file => {
+    const newFiles = acceptedFiles.map(file => {
       const fileWithPreview = Object.assign(file, {
         preview: URL.createObjectURL(file),
         id: Math.random().toString(36).substr(2, 9),
@@ -71,7 +71,7 @@ const BulkImageUploadWithProgress: React.FC<BulkImageUploadProps> = ({
     const updatedFiles = [...files, ...newFiles];
     setFiles(updatedFiles);
     onImagesSelect(updatedFiles);
-  }, [files, maxFiles, onImagesSelect]);
+  }, [files, onImagesSelect]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -79,7 +79,7 @@ const BulkImageUploadWithProgress: React.FC<BulkImageUploadProps> = ({
       'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp']
     },
     multiple: true,
-    disabled: isLoading || isProcessing || files.length >= maxFiles
+    disabled: isLoading || isProcessing
   });
 
   const removeFile = (fileId: string) => {
@@ -246,7 +246,7 @@ const BulkImageUploadWithProgress: React.FC<BulkImageUploadProps> = ({
           isDragActive
             ? 'border-blue-500 bg-blue-50'
             : 'border-gray-300 hover:border-gray-400',
-          (isLoading || isProcessing || files.length >= maxFiles) && 'opacity-50 cursor-not-allowed'
+          (isLoading || isProcessing) && 'opacity-50 cursor-not-allowed'
         )}
       >
         <input {...getInputProps()} />
@@ -278,7 +278,7 @@ const BulkImageUploadWithProgress: React.FC<BulkImageUploadProps> = ({
               {files.length} files selected
             </p>
           </div>
-          {!isDragActive && files.length < maxFiles && !isProcessing && (
+          {!isDragActive && !isProcessing && (
             <Button variant="outline" size="md" disabled={isLoading}>
               Choose Files
             </Button>

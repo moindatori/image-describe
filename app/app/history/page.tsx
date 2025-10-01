@@ -183,9 +183,7 @@ const HistoryPage = () => {
             <Button variant="outline" onClick={handleDownloadAll} disabled={historyItems.length === 0}>
               Download All as TXT
             </Button>
-            <Button variant="outline" onClick={handleExport} disabled={historyItems.length === 0}>
-              Export History
-            </Button>
+            
           </div>
         </div>
       </div>

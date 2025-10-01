@@ -28,6 +28,11 @@ const Sidebar = () => {
       name: 'Buy Credits',
       href: '/app/buy-credits',
       icon: <HugeiconsIcon icon={CreditCardIcon} size={20} strokeWidth={2} />
+    },
+    {
+      name: 'Payment Requests',
+      href: '/app/payment-requests',
+      icon: <HugeiconsIcon icon={CreditCardIcon} size={20} strokeWidth={2} />
     }
   ];
 

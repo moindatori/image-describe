@@ -48,11 +48,19 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    // Get total remaining credits (sum of all users' current credit balances)
+    const remainingCreditsStats = await prisma.user.aggregate({
+      _sum: {
+        credits: true
+      }
+    })
+
     return NextResponse.json({
       totalUsers,
       totalCreditsIssued: creditStats._sum.amount || 0,
       totalImagesProcessed,
-      activeUsers
+      activeUsers,
+      totalRemainingCredits: remainingCreditsStats._sum.credits || 0
     })
   } catch (error) {
     console.error("Admin stats error:", error)

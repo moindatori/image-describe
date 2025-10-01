@@ -169,13 +169,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate bulk limits
-    if (files.length > 10) {
-      return NextResponse.json(
-        { error: 'Maximum 10 images allowed per batch' },
-        { status: 400 }
-      );
-    }
+
 
     // Get authenticated user and check credits
     const user = await getCurrentUser();

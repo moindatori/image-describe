@@ -8,7 +8,6 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert } from '@/components/ui/alert';
-import PaymentRequestsStatus from '@/components/ui/PaymentRequestsStatus';
 
 interface CreditPackage {
   credits: number;
@@ -44,7 +43,6 @@ export default function BuyCreditsPage() {
   const [isCustom, setIsCustom] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [showPaymentRequests, setShowPaymentRequests] = useState(true);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -66,7 +64,6 @@ export default function BuyCreditsPage() {
     setCustomPrice('');
     setSelectedQrCode('');
     setError('');
-    setShowPaymentRequests(true); // Show payment requests again when changing location
   };
 
   const handlePackageSelect = (pkg: CreditPackage) => {
@@ -75,13 +72,11 @@ export default function BuyCreditsPage() {
     setIsCustom(false);
     setCustomCredits('');
     setCustomPrice('');
-    setShowPaymentRequests(false); // Hide payment requests when selecting a package
   };
 
   const handleCustomSelect = () => {
     setIsCustom(true);
     setSelectedPackage(null);
-    setShowPaymentRequests(false); // Hide payment requests when selecting custom option
     setSelectedQrCode('');
   };
 
@@ -184,9 +179,6 @@ export default function BuyCreditsPage() {
           <div className="text-red-800">{error}</div>
         </Alert>
       )}
-
-      {/* Payment Requests Status */}
-      {showPaymentRequests && <PaymentRequestsStatus className="mb-8" />}
 
       {/* Location Selector */}
       <div className="mb-8">
