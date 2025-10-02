@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Button } from './Button';
+import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 
 interface BulkImageUploadProps {

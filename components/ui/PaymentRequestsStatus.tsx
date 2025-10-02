@@ -74,9 +74,9 @@ export default function PaymentRequestsStatus({ className = '' }: PaymentRequest
     });
   };
 
-  // Filter to show only pending and approved requests
+  // Show all payment requests (pending, approved, and rejected)
   const relevantRequests = paymentRequests.filter(
-    request => request.status === 'PENDING' || request.status === 'APPROVED'
+    request => request.status === 'PENDING' || request.status === 'APPROVED' || request.status === 'REJECTED'
   );
 
   if (loading) {
@@ -151,6 +151,12 @@ export default function PaymentRequestsStatus({ className = '' }: PaymentRequest
             {request.status === 'APPROVED' && request.processedAt && (
               <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded text-sm text-green-800">
                 ✅ Payment approved on {formatDate(request.processedAt)}. Credits have been added to your account.
+              </div>
+            )}
+
+            {request.status === 'REJECTED' && (
+              <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-800">
+                ❌ Payment request has been rejected. {request.adminNotes ? 'Please see admin notes below for details.' : 'Please contact support for more information.'}
               </div>
             )}
 
