@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build --turbopack",
+    "build": "prisma migrate deploy && prisma generate && next build --turbopack",
     "vercel-build": "prisma migrate deploy && prisma generate && next build --turbopack",
     "start": "next start",
     "lint": "eslint",
@@ -12,7 +12,8 @@
     "prebuild": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "deploy": "prisma migrate deploy && prisma generate"
   },
   "dependencies": {
     "@hugeicons/core-free-icons": "^1.1.0",
