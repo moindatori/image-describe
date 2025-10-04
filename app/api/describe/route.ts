@@ -58,7 +58,6 @@ async function processImage(file: File, userId: string): Promise<ProcessResult> 
 
         if (ideogramResponse.ok) {
           // Check if response is JSON
-          const contentType = ideogramResponse.headers.get('content-type');
           let responseText = '';
           
           try {

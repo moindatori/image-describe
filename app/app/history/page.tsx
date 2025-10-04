@@ -36,7 +36,6 @@ interface HistoryResponse {
 
 const HistoryPage = () => {
   const [historyItems, setHistoryItems] = useState<HistoryItem[]>([]);
-  const [userCredits, setUserCredits] = useState<UserCredits | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -53,7 +52,7 @@ const HistoryPage = () => {
       setLoading(true);
       const params = new URLSearchParams({
         page: page.toString(),
-        limit: '10',
+        limit: '50',
         ...(search && { search }),
       });
       
@@ -76,7 +75,7 @@ const HistoryPage = () => {
       if (!response.ok) throw new Error('Failed to fetch credits');
       
       const data: UserCredits = await response.json();
-      setUserCredits(data);
+      // Credits fetched successfully but not stored in state
     } catch (error) {
       console.error('Error fetching user credits:', error);
     }
@@ -85,7 +84,7 @@ const HistoryPage = () => {
   useEffect(() => {
     fetchHistory(currentPage, searchTerm);
     fetchUserCredits();
-  }, [currentPage]);
+  }, [currentPage, searchTerm]);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -96,17 +95,7 @@ const HistoryPage = () => {
     return () => clearTimeout(timeoutId);
   }, [searchTerm]);
 
-  const handleExport = () => {
-    const dataStr = JSON.stringify(historyItems, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-    
-    const exportFileDefaultName = 'image-descriptions-history.json';
-    
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
-    linkElement.click();
-  };
+
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);

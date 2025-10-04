@@ -40,9 +40,7 @@ export default function BuyCreditsPage() {
   const [selectedPackage, setSelectedPackage] = useState<CreditPackage | null>(null);
   const [customCredits, setCustomCredits] = useState('');
   const [customPrice, setCustomPrice] = useState('');
-  const [selectedQrCode, setSelectedQrCode] = useState<string>('');
   const [isCustom, setIsCustom] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -63,22 +61,17 @@ export default function BuyCreditsPage() {
     setIsCustom(false);
     setCustomCredits('');
     setCustomPrice('');
-    setSelectedQrCode('');
     setError('');
   };
 
   const handlePackageSelect = (pkg: CreditPackage) => {
     setSelectedPackage(pkg);
-    setSelectedQrCode(pkg.qrCode);
     setIsCustom(false);
-    setCustomCredits('');
-    setCustomPrice('');
   };
 
   const handleCustomSelect = () => {
     setIsCustom(true);
     setSelectedPackage(null);
-    setSelectedQrCode('');
   };
 
   const calculateCustomPrice = (credits: string) => {

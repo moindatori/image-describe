@@ -13,7 +13,8 @@ import {
   Trash2,
   Download,
   Eye,
-  Zap
+  Zap,
+  CreditCard
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -50,7 +51,7 @@ interface ProgressUpdate {
 interface FileWithPreview extends File {
   preview: string;
   id: string;
-  status: 'pending' | 'processing' | 'completed' | 'error';
+  status: 'pending' | 'processing' | 'completed' | 'error' | 'credit_check';
   result?: ProcessResult;
 }
 
@@ -60,6 +61,8 @@ interface BulkImageUploadProps {
   maxFiles?: number;
   onProcessingStart?: () => void;
   onProcessingComplete?: (results: ProcessResult[]) => void;
+  userCredits?: number;
+  onCreditsUpdate?: (newCredits: any) => void;
 }
 
 // Enhanced OOP Classes with modern patterns and better error handling
@@ -376,12 +379,52 @@ class SSEHandler {
   }
 }
 
+// Utility function to format time
+const formatTime = (ms: number): string => {
+  const seconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+
+  if (hours > 0) {
+    return `${hours}h ${minutes % 60}m`;
+  } else if (minutes > 0) {
+    return `${minutes}m ${seconds % 60}s`;
+  } else {
+    return `${seconds}s`;
+  }
+};
+
+const formatFileSize = (bytes: number): string => {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
+
+const getStatusIcon = (status: FileWithPreview['status']) => {
+  switch (status) {
+    case 'pending':
+      return <ImageIcon className="w-4 h-4 text-slate-400" />;
+    case 'processing':
+      return <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />;
+    case 'credit_check':
+      return <CreditCard className="w-4 h-4 text-yellow-500" />;
+    case 'completed':
+      return <CheckCircle className="w-4 h-4 text-green-500" />;
+    case 'error':
+      return <AlertCircle className="w-4 h-4 text-red-500" />;
+  }
+};
+
 const BulkImageUploadOptimized: React.FC<BulkImageUploadProps> = ({ 
   onImagesSelect, 
   isLoading = false, 
   maxFiles = 1000,
   onProcessingStart,
-  onProcessingComplete
+  onProcessingComplete,
+  userCredits = 0,
+  onCreditsUpdate
 }) => {
   const [files, setFiles] = useState<FileWithPreview[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -390,6 +433,9 @@ const BulkImageUploadOptimized: React.FC<BulkImageUploadProps> = ({
     total: number; 
     successful: number; 
     failed: number; 
+    creditsUsed: number;
+    remainingCredits: number;
+    stoppedDueToCredits: boolean;
     percentage: number;
     estimatedTimeRemaining?: number;
   }>({ 
@@ -397,11 +443,15 @@ const BulkImageUploadOptimized: React.FC<BulkImageUploadProps> = ({
     total: 0, 
     successful: 0, 
     failed: 0, 
+    creditsUsed: 0,
+    remainingCredits: userCredits,
+    stoppedDueToCredits: false,
     percentage: 0,
     estimatedTimeRemaining: undefined
   });
   const [errors, setErrors] = useState<string[]>([]);
   const [showPreview, setShowPreview] = useState<string | null>(null);
+  const [currentEventSource, setCurrentEventSource] = useState<EventSource | null>(null);
   const resultsRef = useRef<ProcessResult[]>([]);
 
   // Initialize managers
@@ -411,14 +461,45 @@ const BulkImageUploadOptimized: React.FC<BulkImageUploadProps> = ({
 
   useEffect(() => {
     fileManagerRef.current = new FileManager(setFiles);
-    progressManagerRef.current = new ProgressManager(setProgress);
+    
+    // Create a wrapper function to handle the type mismatch
+    const progressUpdateWrapper = (progressUpdate: { 
+      current: number; 
+      total: number; 
+      successful: number; 
+      failed: number;
+      percentage: number;
+      estimatedTimeRemaining?: number;
+    }) => {
+      setProgress(prev => ({
+        ...prev,
+        current: progressUpdate.current,
+        total: progressUpdate.total,
+        successful: progressUpdate.successful,
+        failed: progressUpdate.failed,
+        percentage: progressUpdate.percentage,
+        estimatedTimeRemaining: progressUpdate.estimatedTimeRemaining
+      }));
+    };
+    
+    progressManagerRef.current = new ProgressManager(progressUpdateWrapper);
     sseHandlerRef.current = new SSEHandler(
       fileManagerRef.current,
       progressManagerRef.current,
       resultsRef,
       onProcessingComplete
     );
-  }, [onProcessingComplete]);
+  }, [onProcessingComplete, onCreditsUpdate]);
+
+  // Update remaining credits when userCredits prop changes
+  useEffect(() => {
+    if (progressManagerRef.current) {
+      setProgress(prev => ({
+        ...prev,
+        remainingCredits: userCredits
+      }));
+    }
+  }, [userCredits]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (fileManagerRef.current) {
@@ -460,27 +541,29 @@ const BulkImageUploadOptimized: React.FC<BulkImageUploadProps> = ({
     }
   }, [onImagesSelect]);
 
-  const processImages = async () => {
-    if (!fileManagerRef.current || !progressManagerRef.current || !sseHandlerRef.current) {
-      console.error('Managers not initialized');
+  const processImages = useCallback(async () => {
+    if (!fileManagerRef.current || !progressManagerRef.current || !sseHandlerRef.current) return;
+    if (files.length === 0) return;
+
+    // Check if user has any credits
+    if (userCredits <= 0) {
+      setErrors(prev => [...prev, 'You need credits to process images. Please purchase credits first.']);
       return;
     }
 
-    const currentFiles = fileManagerRef.current.getFiles();
-    if (currentFiles.length === 0) return;
-
     setIsProcessing(true);
-    progressManagerRef.current.setTotal(currentFiles.length);
+    setErrors([]);
+    progressManagerRef.current.setTotal(files.length);
     resultsRef.current = [];
     onProcessingStart?.();
 
     try {
       const formData = new FormData();
-      currentFiles.forEach((file) => {
+      files.forEach((file) => {
         formData.append('images', file);
       });
 
-      const response = await fetch('/api/describe/bulk', {
+      const response = await fetch('/api/describe/bulk-with-credits', {
         method: 'POST',
         body: formData,
       });
@@ -490,63 +573,46 @@ const BulkImageUploadOptimized: React.FC<BulkImageUploadProps> = ({
         throw new Error(errorData.error || 'Failed to process images');
       }
 
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
+      // Handle Server-Sent Events
+      const eventSource = new EventSource('/api/describe/bulk-with-credits/stream');
+      setCurrentEventSource(eventSource);
 
-      if (reader && sseHandlerRef.current) {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          const chunk = decoder.decode(value);
-          const lines = chunk.split('\n');
-
-          for (const line of lines) {
-            const data = sseHandlerRef.current.parseSSEData(line);
-            if (data) {
-              sseHandlerRef.current.handleProgressUpdate(data);
-              
-              if (data.type === 'complete') {
-                setIsProcessing(false);
-                break;
-              }
-            }
-          }
+      eventSource.onmessage = (event) => {
+        try {
+          const data: ProgressUpdate = JSON.parse(event.data);
+          sseHandlerRef.current?.handleProgressUpdate(data);
+        } catch (error) {
+          console.error('Error parsing SSE data:', error);
         }
-      }
+      };
+
+      eventSource.onerror = (error) => {
+        console.error('SSE error:', error);
+        eventSource.close();
+        setCurrentEventSource(null);
+        setIsProcessing(false);
+      };
+
+      eventSource.addEventListener('complete', () => {
+        eventSource.close();
+        setCurrentEventSource(null);
+        setIsProcessing(false);
+      });
+
     } catch (error) {
       console.error('Error processing images:', error);
+      setErrors(prev => [...prev, error instanceof Error ? error.message : 'Unknown error occurred']);
       setIsProcessing(false);
     }
-  };
+  }, [files, userCredits, onProcessingStart]);
 
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
-  const formatTime = (seconds: number): string => {
-    if (seconds < 60) return `${seconds}s`;
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}m ${remainingSeconds}s`;
-  };
-
-  const getStatusIcon = (status: FileWithPreview['status']) => {
-    switch (status) {
-      case 'pending':
-        return <ImageIcon className="w-4 h-4 text-slate-400" />;
-      case 'processing':
-        return <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />;
-      case 'completed':
-        return <CheckCircle className="w-4 h-4 text-green-500" />;
-      case 'error':
-        return <AlertCircle className="w-4 h-4 text-red-500" />;
+  const stopProcessing = useCallback(() => {
+    if (currentEventSource) {
+      currentEventSource.close();
+      setCurrentEventSource(null);
     }
-  };
+    setIsProcessing(false);
+  }, [currentEventSource]);
 
   const downloadResults = () => {
     if (!fileManagerRef.current) return;
@@ -562,6 +628,10 @@ const BulkImageUploadOptimized: React.FC<BulkImageUploadProps> = ({
     linkElement.setAttribute('download', exportFileDefaultName);
     linkElement.click();
   };
+
+  const canProcessImages = files.length > 0 && userCredits > 0 && !isProcessing;
+  const estimatedCreditsNeeded = files.length;
+  const hasInsufficientCredits = estimatedCreditsNeeded > userCredits;
 
   return (
     <div className="w-full space-y-8">

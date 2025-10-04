@@ -2,10 +2,10 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/Button';
-import BulkImageUploadWithProgress from '@/components/ui/BulkImageUploadWithProgress';
+import BulkImageUploadOptimized from '@/components/ui/BulkImageUploadOptimized';
 import { downloadSingleDescription, downloadBulkDescriptions, type DescriptionData } from '@/lib/download-utils';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { Upload01Icon, Image01Icon, AlertCircleIcon, Download01Icon, File01Icon } from '@hugeicons/core-free-icons';
+import { Upload01Icon, Image01Icon, AlertCircleIcon, Download01Icon } from '@hugeicons/core-free-icons';
 
 interface DescriptionResult {
   description: string;
@@ -242,10 +242,12 @@ const UploadPage = () => {
             </div>
           ) : (
             /* Bulk Image Upload with Progress */
-            <BulkImageUploadWithProgress
+            <BulkImageUploadOptimized
               onImagesSelect={setSelectedFiles}
               isLoading={isLoading}
               maxFiles={1000}
+              userCredits={userCredits || 0}
+              onCreditsUpdate={(newCredits) => setUserCredits(newCredits)}
               onProcessingStart={() => {
                 setError(null);
                 setBulkResults([]);

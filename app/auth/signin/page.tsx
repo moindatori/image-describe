@@ -40,7 +40,7 @@ export default function SignInPage() {
           router.push("/app/upload")
         }
       }
-    } catch (error) {
+    } catch (_error) {
       setError("An error occurred. Please try again.")
     } finally {
       setIsLoading(false)
@@ -67,7 +67,7 @@ export default function SignInPage() {
           router.push("/app/upload")
         }
       }
-    } catch (error) {
+    } catch (_error) {
       setError("An error occurred. Please try again.")
     } finally {
       setIsLoading(false)

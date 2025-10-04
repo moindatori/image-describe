@@ -6,9 +6,7 @@ import { useUser } from '@/hooks/useUser';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Separator } from '@/components/ui/separator';
 import { 
   Upload, 
   Image as ImageIcon, 
@@ -184,7 +182,7 @@ export default function ModernUploadPage() {
       } else {
         setError(result.error || 'Failed to process image');
       }
-    } catch (error) {
+    } catch (_error) {
       setError('Network error occurred');
     } finally {
       setIsUploading(false);
