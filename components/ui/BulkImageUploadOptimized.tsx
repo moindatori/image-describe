@@ -860,9 +860,7 @@ const BulkImageUploadOptimized: React.FC<BulkImageUploadProps> = ({
                   <Zap className="w-6 h-6 mr-3 text-blue-500" />
                   Ready to Process
                 </h3>
-                <p className="text-slate-600 mt-2 text-lg">
-                  {files.length} {files.length === 1 ? 'image' : 'images'} selected for AI description
-                </p>
+                
                 {fileManagerRef.current && (
                   <p className="text-slate-500 mt-1">
                     Total size: {formatFileSize(fileManagerRef.current.getTotalSize())}
@@ -892,7 +890,7 @@ const BulkImageUploadOptimized: React.FC<BulkImageUploadProps> = ({
                     className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:via-purple-700 hover:to-pink-700 text-white font-bold px-10 py-4 text-lg shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
                   >
                     <Zap className="w-5 h-5 mr-2" />
-                    Process All Images
+                    Process
                   </Button>
                 )}
                 
@@ -904,7 +902,7 @@ const BulkImageUploadOptimized: React.FC<BulkImageUploadProps> = ({
                   className="px-6 py-3 border-slate-300 hover:border-red-400 hover:text-red-600 hover:bg-red-50 transition-all duration-300"
                 >
                   <Trash2 className="w-5 h-5 mr-2" />
-                  Clear All
+                  Clear
                 </Button>
               </div>
             </div>
