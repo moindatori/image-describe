@@ -114,16 +114,13 @@ class ImageProcessingService {
         };
       } catch (error) {
         console.error('Ideogram API error:', error);
-        // Fall through to fallback
+        // Throw error instead of using fallback
+        throw new Error(`Failed to describe image: ${error instanceof Error ? error.message : 'Unknown API error'}`);
       }
     }
 
-    // Fallback description
-    return {
-      description: `A detailed image showing various visual elements. This appears to be ${file.name.split('.')[0].replace(/[-_]/g, ' ')}.`,
-      confidence: 75,
-      source: 'fallback'
-    };
+    // Throw error if no API key is available
+    throw new Error('Image description service is not available - API key not configured');
   }
 
   private async callIdeogramAPI(file: File): Promise<{ description: string }> {

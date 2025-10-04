@@ -101,16 +101,20 @@ async function processImage(file: File, userId: string): Promise<ProcessResult> 
         }
       } catch (apiError) {
         console.error('Ideogram API error:', apiError);
-        // Use fallback description
-        description = `This appears to be a ${file.type.split('/')[1]} image file named "${file.name}". The image contains visual content that would typically be analyzed by an AI vision model to provide detailed descriptions of objects, scenes, people, text, and other visual elements present in the image.`;
-        confidence = 85;
-        source = 'fallback';
+        // Return error instead of fallback description
+        return {
+          success: false,
+          filename: file.name,
+          error: `Failed to describe image: ${apiError instanceof Error ? apiError.message : 'Unknown API error'}`
+        };
       }
     } else {
-      // Fallback when no API key
-      description = `This appears to be a ${file.type.split('/')[1]} image file named "${file.name}". The image contains visual content that would typically be analyzed by an AI vision model to provide detailed descriptions of objects, scenes, people, text, and other visual elements present in the image.`;
-      confidence = 85;
-      source = 'fallback';
+      // Return error when no API key is available
+      return {
+        success: false,
+        filename: file.name,
+        error: 'Image description service is not available - API key not configured'
+      };
     }
 
     // Save to database

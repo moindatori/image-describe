@@ -261,21 +261,13 @@ export class ImageDescriptionProcessor {
         }
       } catch (error) {
         console.error('Ideogram API error:', error);
-        // Fall back to default description
-        return {
-          description: `Image file: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`,
-          confidence: 50,
-          source: 'fallback'
-        };
+        // Throw the error instead of using fallback description
+        throw new Error(`Failed to describe image: ${error instanceof Error ? error.message : 'Unknown API error'}`);
       }
     }
 
-    // Fallback description
-    return {
-      description: `Image file: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`,
-      confidence: 50,
-      source: 'fallback'
-    };
+    // Throw error if no API key is available
+    throw new Error('Image description service is not available - API key not configured');
   }
 
   /**
