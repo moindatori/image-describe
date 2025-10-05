@@ -48,13 +48,19 @@ async function processImage(file: File, userId: string): Promise<ProcessResult> 
         const ideogramFormData = new FormData();
         ideogramFormData.append('image_file', file);
 
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
         const ideogramResponse = await fetch(IDEOGRAM_API_URL, {
           method: 'POST',
           headers: {
             'Api-Key': IDEOGRAM_API_KEY,
           },
           body: ideogramFormData,
+          signal: controller.signal,
         });
+
+        clearTimeout(timeoutId);
 
         if (ideogramResponse.ok) {
           // Check if response is JSON

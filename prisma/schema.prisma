@@ -90,6 +90,9 @@ model ImageDescription {
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
+  @@index([createdAt])
+  @@index([userId, createdAt])
   @@map("image_descriptions")
 }
 
@@ -104,6 +107,9 @@ model CreditTransaction {
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
+  @@index([createdAt])
+  @@index([userId, type])
   @@map("credit_transactions")
 }
 
@@ -128,6 +134,10 @@ model PaymentRequest {
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([status, createdAt])
   @@map("payment_requests")
 }
 

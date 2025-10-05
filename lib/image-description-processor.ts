@@ -72,7 +72,7 @@ export class ImageDescriptionProcessor {
     stopOnInsufficientCredits: true,
     maxFileSize: 10 * 1024 * 1024, // 10MB
     allowedMimeTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'],
-    apiTimeout: 30000 // 30 seconds
+    apiTimeout: 15000 // 15 seconds
   };
 
   constructor(userId: string, config?: Partial<ProcessingConfig>) {
