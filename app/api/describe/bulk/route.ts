@@ -14,6 +14,7 @@ interface ProcessResult {
   source?: string;
   error?: string;
   index: number;
+  remainingCredits?: number;
 }
 
 interface ProgressUpdate {
@@ -218,6 +219,30 @@ export async function POST(request: NextRequest) {
           for (let i = 0; i < files.length; i++) {
             const file = files[i];
             
+            // Check if user still has credits before processing each image
+            const currentUser = await prisma.user.findUnique({
+              where: { id: user.id },
+              select: { credits: true }
+            });
+
+            if (!currentUser || currentUser.credits < 1) {
+              // Stop processing if no credits remaining
+              const errorResult: ProcessResult = {
+                success: false,
+                filename: file.name,
+                error: 'Insufficient credits to process this image',
+                index: i
+              };
+              results.push(errorResult);
+              
+              const resultUpdate: ProgressUpdate = {
+                type: 'result',
+                result: errorResult
+              };
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(resultUpdate)}\n\n`));
+              break;
+            }
+            
             // Send progress update
             const progressUpdate: ProgressUpdate = {
               type: 'progress',
@@ -232,23 +257,37 @@ export async function POST(request: NextRequest) {
             
             if (result.success) {
               successfulProcessing++;
+              
+              // Deduct credits immediately after successful processing
+              try {
+                await deductCredits(user.id, 1, `Image description for ${file.name}`);
+              } catch (creditError) {
+                console.error('Error deducting credits:', creditError);
+                // Update the result to reflect credit deduction failure
+                result.error = 'Processing successful but credit deduction failed';
+                result.success = false;
+                successfulProcessing--;
+              }
             }
 
-            // Send result update
+            // Send result update with current remaining credits
+            const updatedUser = await prisma.user.findUnique({
+              where: { id: user.id },
+              select: { credits: true }
+            });
+
             const resultUpdate: ProgressUpdate = {
               type: 'result',
-              result: result
+              result: {
+                ...result,
+                remainingCredits: updatedUser?.credits || 0
+              }
             };
             controller.enqueue(encoder.encode(`data: ${JSON.stringify(resultUpdate)}\n\n`));
           }
 
-          // Deduct credits only for successfully processed images
-          if (successfulProcessing > 0) {
-            await deductCredits(user.id, successfulProcessing, 'Bulk image description');
-          }
-
-          // Get updated user credits
-          const updatedUser = await prisma.user.findUnique({
+          // Get final user credits
+          const finalUser = await prisma.user.findUnique({
             where: { id: user.id },
             select: { credits: true }
           });
@@ -261,7 +300,7 @@ export async function POST(request: NextRequest) {
               successful: successfulProcessing,
               failed: files.length - successfulProcessing,
               creditsUsed: successfulProcessing,
-              remainingCredits: updatedUser?.credits || 0
+              remainingCredits: finalUser?.credits || 0
             }
           };
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(completeUpdate)}\n\n`));

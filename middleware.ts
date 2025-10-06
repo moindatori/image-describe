@@ -14,7 +14,7 @@ export default withAuth(
       if (token?.role === "ADMIN") {
         return NextResponse.redirect(new URL("/admin", req.url))
       }
-      return NextResponse.redirect(new URL("/app/upload", req.url))
+      return NextResponse.redirect(new URL("/app/describe", req.url))
     }
 
     // Redirect unauthenticated users to sign in
@@ -24,7 +24,7 @@ export default withAuth(
 
     // Check admin access
     if (isAdminPage && token?.role !== "ADMIN") {
-      return NextResponse.redirect(new URL("/app/upload", req.url))
+      return NextResponse.redirect(new URL("/app/describe", req.url))
     }
 
     return NextResponse.next()

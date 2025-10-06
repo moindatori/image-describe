@@ -16,7 +16,7 @@ const Sidebar = () => {
   const navigation = [
     {
       name: 'Describe',
-      href: '/app/upload',
+      href: '/app/describe',
       icon: <HugeiconsIcon icon={Upload01Icon} size={20} strokeWidth={2} />
     },
     {

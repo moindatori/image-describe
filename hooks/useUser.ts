@@ -13,6 +13,7 @@ interface UseUserReturn {
   user: User | null;
   loading: boolean;
   error: string | null;
+  updateCredits: (newCredits: number) => void;
 }
 
 export function useUser(): UseUserReturn {
@@ -41,9 +42,19 @@ export function useUser(): UseUserReturn {
     }
   }, [session, status]);
 
+  const updateCredits = (newCredits: number) => {
+    if (user) {
+      setUser({
+        ...user,
+        credits: newCredits
+      });
+    }
+  };
+
   return {
     user,
     loading: status === 'loading',
     error,
+    updateCredits,
   };
 }

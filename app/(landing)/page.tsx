@@ -50,7 +50,7 @@ export default function LandingPage() {
                   Dashboard
                 </Button>
               </Link>
-              <Link href="/app/upload">
+              <Link href="/app/describe">
                 <Button variant="primary" size="sm">
                   Get Started
                 </Button>
@@ -74,7 +74,7 @@ export default function LandingPage() {
             Perfect for accessibility, content creation, and image analysis.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/app/upload">
+            <Link href="/app/describe">
               <Button variant="primary" size="lg" className="w-full sm:w-auto">
                 Start Describing Images
               </Button>
@@ -161,7 +161,7 @@ export default function LandingPage() {
           <p className="text-xl text-blue-100 mb-8">
             Join thousands of users who trust ImageDescribe for their image analysis needs.
           </p>
-          <Link href="/app/upload">
+          <Link href="/app/describe">
             <Button variant="secondary" size="lg" className="bg-white text-blue-600 hover:bg-gray-100">
               Upload Your First Image
             </Button>
@@ -183,7 +183,7 @@ export default function LandingPage() {
               <h4 className="text-lg font-semibold mb-4">Product</h4>
               <ul className="space-y-2 text-gray-400">
                 <li><Link href="/app" className="hover:text-white transition-colors">Dashboard</Link></li>
-                <li><Link href="/app/upload" className="hover:text-white transition-colors">Upload</Link></li>
+                <li><Link href="/app/describe" className="hover:text-white transition-colors">Describe</Link></li>
                 <li><Link href="/app/history" className="hover:text-white transition-colors">History</Link></li>
               </ul>
             </div>

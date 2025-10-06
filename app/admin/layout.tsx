@@ -22,7 +22,7 @@ export default function AdminLayout({
     }
 
     if (session.user.role !== "ADMIN") {
-      router.push("/app/upload")
+      router.push("/app/describe")
       return
     }
   }, [session, status, router])

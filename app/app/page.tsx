@@ -7,7 +7,7 @@ export default function AppPage() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace('/app/upload');
+    router.replace('/app/describe');
   }, [router]);
 
   return null;

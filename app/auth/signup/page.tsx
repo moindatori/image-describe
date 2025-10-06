@@ -80,7 +80,7 @@ export default function SignUpPage() {
         if (session?.user?.role === "ADMIN") {
           router.push("/admin")
         } else {
-          router.push("/app/upload")
+          router.push("/app/describe")
         }
       }
     } catch (_error) {

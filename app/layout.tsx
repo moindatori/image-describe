@@ -1,13 +1,6 @@
 import type { Metadata } from "next";
-import { Figtree } from "next/font/google";
 import { AuthProvider } from "@/components/providers/session-provider";
 import "./globals.css";
-
-const figtree = Figtree({
-  variable: "--font-figtree",
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800", "900"],
-});
 
 export const metadata: Metadata = {
   title: "ImageDescribe - AI-Powered Image Analysis",
@@ -22,7 +15,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${figtree.variable} antialiased`}
+        className="font-sans antialiased"
       >
         <AuthProvider>
           {children}
