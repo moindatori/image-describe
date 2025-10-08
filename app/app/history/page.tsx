@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { Trash2 } from 'lucide-react';
 
 import { downloadSingleDescription, downloadBulkDescriptions, type DescriptionData } from '@/lib/download-utils';
 import { Button } from '@/components/ui/Button';
@@ -39,6 +40,8 @@ const HistoryPage = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [clearing, setClearing] = useState(false);
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages: 1,
@@ -133,6 +136,43 @@ const HistoryPage = () => {
     downloadBulkDescriptions(descriptionData, 'all_descriptions_history');
   };
 
+  const handleClearHistory = async () => {
+    try {
+      setClearing(true);
+      const response = await fetch('/api/history', {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to clear history');
+      }
+
+      const result = await response.json();
+      
+      // Refresh the history after clearing
+      setHistoryItems([]);
+      setPagination({
+        currentPage: 1,
+        totalPages: 1,
+        totalCount: 0,
+        hasNext: false,
+        hasPrev: false,
+      });
+      setCurrentPage(1);
+      setSearchTerm('');
+      
+      // Show success message (you could add a toast notification here)
+      alert(`Successfully cleared ${result.deletedCount} items from history.`);
+      
+    } catch (error) {
+      console.error('Error clearing history:', error);
+      alert('Failed to clear history. Please try again.');
+    } finally {
+      setClearing(false);
+      setShowClearConfirm(false);
+    }
+  };
+
   if (loading && historyItems.length === 0) {
     return (
       <div className="space-y-6">
@@ -173,7 +213,15 @@ const HistoryPage = () => {
             <Button variant="outline" onClick={handleDownloadAll} disabled={historyItems.length === 0}>
               Download All as TXT
             </Button>
-            
+            <Button 
+              variant="outline" 
+              onClick={() => setShowClearConfirm(true)} 
+              disabled={historyItems.length === 0}
+              className="text-red-600 border-red-300 hover:bg-red-50"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Clear History
+            </Button>
           </div>
         </div>
       </div>
@@ -314,6 +362,36 @@ const HistoryPage = () => {
                 onClick={() => handlePageChange(pagination.currentPage + 1)}
               >
                 Next
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Clear History Confirmation Dialog */}
+      {showClearConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Clear All History
+            </h3>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to clear all your description history? This action cannot be undone.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setShowClearConfirm(false)}
+                disabled={clearing}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleClearHistory}
+                disabled={clearing}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                {clearing ? 'Clearing...' : 'Clear History'}
               </Button>
             </div>
           </div>

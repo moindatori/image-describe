@@ -76,3 +76,36 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const user = await getCurrentUser();
+    
+    // Delete all image descriptions for the current user
+    const result = await prisma.imageDescription.deleteMany({
+      where: {
+        userId: user.id,
+      },
+    });
+
+    return NextResponse.json({
+      message: 'History cleared successfully',
+      deletedCount: result.count,
+    });
+  } catch (error) {
+    console.error('Error clearing history:', error);
+    
+    // Check if it's an authentication error
+    if (error instanceof Error && (error.message === 'User not authenticated' || error.message === 'User not found')) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+    
+    return NextResponse.json(
+      { error: 'Failed to clear history' },
+      { status: 500 }
+    );
+  }
+}

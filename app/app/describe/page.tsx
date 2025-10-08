@@ -75,6 +75,9 @@ export default function DescribePage() {
           userCredits={user?.credits || 0} 
           onCreditsUpdate={handleCreditsUpdate}
           onProcessingComplete={handleProcessingComplete}
+          showDownloadButton={processedResults.length > 0}
+          onDownloadAll={downloadAllDescriptions}
+          downloadButtonText="Download All Descriptions"
         />
         
         {processedResults.length > 0 && (
@@ -83,13 +86,6 @@ export default function DescribePage() {
               <h2 className="text-2xl font-bold text-slate-800">
                 Generated Descriptions ({processedResults.filter(r => r.success).length})
               </h2>
-              <Button
-                onClick={downloadAllDescriptions}
-                className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                <Download className="w-4 h-4" />
-                <span>Download All Descriptions</span>
-              </Button>
             </div>
             
             <div className="space-y-4">

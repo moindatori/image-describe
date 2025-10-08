@@ -56,6 +56,9 @@ interface UnifiedImageUploadProps {
   userCredits?: number;
   onCreditsUpdate?: (newCredits: number) => void;
   onProcessingComplete?: (results: ProcessResult[]) => void;
+  showDownloadButton?: boolean;
+  onDownloadAll?: () => void;
+  downloadButtonText?: string;
 }
 
 // File Manager Class
@@ -252,7 +255,10 @@ const formatFileSize = (bytes: number): string => {
 const UnifiedImageUpload: React.FC<UnifiedImageUploadProps> = ({ 
   userCredits = 0,
   onCreditsUpdate,
-  onProcessingComplete
+  onProcessingComplete,
+  showDownloadButton = false,
+  onDownloadAll,
+  downloadButtonText = "Download All Descriptions"
 }) => {
   const [files, setFiles] = useState<FileWithPreview[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -679,7 +685,7 @@ const UnifiedImageUpload: React.FC<UnifiedImageUploadProps> = ({
                 Images ({files.length})
               </h3>
               <div className="flex space-x-4">
-                {results.length > 0 && (
+                {results.length > 0 && !showDownloadButton && (
                   <Button
                     variant="outline"
                     onClick={downloadResults}
@@ -687,6 +693,16 @@ const UnifiedImageUpload: React.FC<UnifiedImageUploadProps> = ({
                   >
                     <Download className="w-5 h-5 mr-2" />
                     Export Results
+                  </Button>
+                )}
+                {showDownloadButton && onDownloadAll && (
+                  <Button
+                    variant="outline"
+                    onClick={onDownloadAll}
+                    className="px-6 py-3 border-blue-300 text-blue-700 hover:bg-blue-50"
+                  >
+                    <Download className="w-5 h-5 mr-2" />
+                    {downloadButtonText}
                   </Button>
                 )}
                 {canProcessImages && (
